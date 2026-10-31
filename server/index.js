@@ -5,8 +5,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const db = require("./config/db");
-const cron = require("node-cron");
-const workflow = require("./controllers/workflowController");
+const recurringBillingJob = require("./jobs/recurringBillingJob");
 
 const app = express();
 app.disable("x-powered-by");
@@ -30,19 +29,10 @@ Object.entries(resources).forEach(([path, route]) => app.use(`/api/${path}`, req
 app.use("/api/test", require("./routes/testRoutes"));
 app.use("/api/workflows", require("./routes/workflowRoutes"));
 
-cron.schedule("0 2 * * *", async () => {
-  try {
-    await db.execute("UPDATE invoices SET status='overdue' WHERE status IN ('issued','partially_paid') AND due_at < CURDATE()");
-    const result = await workflow.runScheduledBilling();
-    console.log(`Recurring billing completed: ${result.invoicesGenerated} invoices generated`);
-  } catch (error) { console.error("Recurring billing scheduler check failed:", error.message); }
-});
+recurringBillingJob.startRecurringBillingJob();
 
 app.use((req, res) => res.status(404).json({ success: false, message: "API route not found" }));
-app.use((error, req, res, next) => {
-  console.error(error);
-  res.status(error.status || 500).json({ success: false, message: error.status ? error.message : "Internal server error" });
-});
+app.use(require("./middleware/errorMiddleware"));
 
 const PORT = Number(process.env.PORT) || 5000;
 async function start() {
