@@ -11,6 +11,15 @@ const referenceTables = {
 
 function cleanValue(field, value, column) {
   if (value === "" || value === null || value === undefined) return "";
+  if (/^enum\(/i.test(column.Type)) {
+    const allowed = [...String(column.Type).matchAll(/'((?:[^'\\]|\\.)*)'/g)]
+      .map(match => match[1].replace(/\\'/g, "'"));
+    const normalized = String(value).trim().toLowerCase().replace(/[\s-]+/g, "_");
+    const aliases = { "credit_card": "card", "creditcard": "card", "net_banking": "bank_transfer", "bank": "bank_transfer", "google_pay": "upi", "phone_pe": "upi", "cheque": "cheque" };
+    const candidate = aliases[normalized] || normalized;
+    if (!allowed.includes(candidate)) return `__INVALID_ENUM__${candidate}`;
+    return candidate;
+  }
   if (/^(date|datetime|timestamp)/i.test(column.Type) && typeof value === "string") {
     const isoMatch = value.match(/^(\d{4}-\d{2}-\d{2})(?:T|$)/);
     if (isoMatch) return isoMatch[1];
@@ -26,6 +35,11 @@ async function cleanReferences(values) {
     if (!Number.isInteger(numericId) || numericId < 1) {
       delete values[field];
       continue;
+    }
+
+    function invalidEnum(values) {
+      const field = Object.keys(values).find(key => String(values[key]).startsWith("__INVALID_ENUM__"));
+      return field ? { field, value: String(values[field]).replace("__INVALID_ENUM__", "") } : null;
     }
     const [rows] = await db.execute(`SELECT id FROM \`${referenceTables[field]}\` WHERE id=? LIMIT 1`, [numericId]);
     if (!rows.length) delete values[field];
@@ -76,6 +90,14 @@ exports.create = table => async (req, res, next) => {
       if (req.body[field] !== undefined && value !== "") values[field] = value;
     });
     await cleanReferences(values);
+    const invalid = invalidEnum(values);
+    if (invalid) return res.status(422).json({ success: false, message: `${invalid.field.replaceAll("_", " ")} must be one of the available options.` });
+    const requiredColumns = columns.filter(column => column.Null === "NO" &&
+      !["id","created_at","updated_at"].includes(column.Field) && column.Default === null && req.body[column.Field] === undefined);
+    if (requiredColumns.length) return res.status(422).json({
+      success: false,
+      message: `Required fields: ${requiredColumns.map(column => column.Field.replaceAll("_", " ")).join(", ")}`
+    });
     const keys = Object.keys(values);
     if (!keys.length) return res.status(400).json({ success: false, message: "No valid fields supplied." });
     const [result] = await db.execute(`INSERT INTO \`${table}\` (${keys.map(k => `\`${k}\``).join(",")}) VALUES (${keys.map(() => "?").join(",")})`, keys.map(k => values[k]));
@@ -96,6 +118,8 @@ exports.update = table => async (req, res, next) => {
       values[field] = cleanValue(field, req.body[field], column || { Type: "" });
     });
     await cleanReferences(values);
+    const invalid = invalidEnum(values);
+    if (invalid) return res.status(422).json({ success: false, message: `${invalid.field.replaceAll("_", " ")} must be one of the available options.` });
     const validKeys = Object.keys(values);
     if (!validKeys.length) return res.status(400).json({ success: false, message: "The supplied related record does not exist." });
     await db.execute(`UPDATE \`${table}\` SET ${validKeys.map(k => `\`${k}\`=?`).join(",")}, updated_at=UTC_TIMESTAMP() WHERE id=?`, [...validKeys.map(k => values[k] || null), req.params.id]);

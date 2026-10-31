@@ -17,8 +17,8 @@ module.exports = (error, req, res, next) => {
     return res.status(409).json({ success: false, message: "The selected related record is no longer available. Refresh and try again." });
   }
 
-  if (error?.code === "ER_TRUNCATED_WRONG_VALUE" || error?.code === "ER_WRONG_VALUE") {
-    return res.status(422).json({ success: false, message: "One of the entered date or numeric values is invalid." });
+  if (error?.code === "ER_TRUNCATED_WRONG_VALUE" || error?.code === "ER_WRONG_VALUE" || error?.code === "WARN_DATA_TRUNCATED") {
+    return res.status(422).json({ success: false, message: "One of the selected values is invalid. Please choose an option from the available values." });
   }
 
   const status = Number.isInteger(error?.status) ? error.status : 500;
