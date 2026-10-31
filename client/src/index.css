@@ -1,2 +1,19 @@
-:root { font-family: Inter, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; font-synthesis: none; text-rendering: optimizeLegibility; }
-* { box-sizing: border-box; } body { margin: 0; min-width: 320px; min-height: 100vh; } button,input { font: inherit; } button { cursor: pointer; } a { color: inherit; }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-slate-200; }
+  body { @apply m-0 min-w-[320px] min-h-screen bg-slate-100 font-sans text-slate-800 antialiased; }
+  button, input, select, textarea { @apply font-sans; }
+}
+
+@layer components {
+  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50; }
+  .btn-danger { @apply inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700; }
+  .form-input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100; }
+  .panel { @apply rounded-xl border border-slate-200 bg-white shadow-panel; }
+  .table-heading { @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .table-cell { @apply px-4 py-3 text-sm text-slate-700; }
+}

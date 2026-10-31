@@ -1,3 +1,3 @@
 const router=require("express").Router(), auth=require("../middleware/authMiddleware"), g=require("../controllers/genericController");
-router.use(auth); router.get("/",g.list("refunds")); router.post("/",g.create("refunds")); router.put("/:id",g.update("refunds"));
+router.use(auth); router.get("/",g.list("refunds")); router.post("/",g.create("refunds")); router.put("/:id",g.update("refunds")); router.delete("/:id",g.remove("refunds"));
 module.exports=router;

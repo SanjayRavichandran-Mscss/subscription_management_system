@@ -7,7 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "db:init": "node scripts/initDatabase.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +25,8 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.24.6",
     "node-cron": "^4.6.0",
-    "nodemailer": "^10.3.1"
+    "nodemailer": "^10.3.1",
+    "pdfkit": "^0.20.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

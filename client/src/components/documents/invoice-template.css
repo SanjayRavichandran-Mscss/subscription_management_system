@@ -1,0 +1,18 @@
+.invoice-document { width: 210mm; min-height: 297mm; margin: auto; padding: 18mm; box-sizing: border-box; background: white; color: #0f172a; font-family: Arial, sans-serif; }
+.invoice-document header { display: flex; justify-content: space-between; border-bottom: 2px solid #1677ff; padding-bottom: 16px; }
+.invoice-document header h1 { margin: 0; font-size: 24px; }
+.invoice-document header p { margin: 4px 0 0; color: #64748b; }
+.invoice-document .invoice-title { text-align: right; }
+.invoice-document .invoice-title h2 { margin: 0 0 4px; text-transform: uppercase; color: #1677ff; }
+.invoice-parties { display: flex; justify-content: space-between; margin: 28px 0; }
+.invoice-parties span { display: block; color: #64748b; font-size: 12px; text-transform: uppercase; }
+.invoice-parties dl { margin: 0; min-width: 220px; }
+.invoice-parties dl div, .invoice-totals dl div { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 8px; }
+.invoice-document table { width: 100%; border-collapse: collapse; }
+.invoice-document th { background: #f1f5f9; text-align: left; padding: 10px; font-size: 12px; text-transform: uppercase; }
+.invoice-document td { border-bottom: 1px solid #e2e8f0; padding: 12px 10px; }
+.invoice-totals { display: flex; justify-content: flex-end; margin-top: 24px; }
+.invoice-totals dl { width: 280px; }
+.invoice-totals dd { margin: 0; }
+.invoice-totals .grand-total { border-top: 2px solid #0f172a; padding-top: 12px; font-size: 18px; font-weight: bold; }
+@media print { body { margin: 0; background: white; } .invoice-document { width: 100%; min-height: 100vh; } }

@@ -5,6 +5,8 @@ const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const db = require("./config/db");
+const cron = require("node-cron");
+const workflow = require("./controllers/workflowController");
 
 const app = express();
 app.disable("x-powered-by");
@@ -26,6 +28,15 @@ const resources = {
 };
 Object.entries(resources).forEach(([path, route]) => app.use(`/api/${path}`, require(`./routes/${route}`)));
 app.use("/api/test", require("./routes/testRoutes"));
+app.use("/api/workflows", require("./routes/workflowRoutes"));
+
+cron.schedule("0 2 * * *", async () => {
+  try {
+    await db.execute("UPDATE invoices SET status='overdue' WHERE status IN ('issued','partially_paid') AND due_at < CURDATE()");
+    const result = await workflow.runScheduledBilling();
+    console.log(`Recurring billing completed: ${result.invoicesGenerated} invoices generated`);
+  } catch (error) { console.error("Recurring billing scheduler check failed:", error.message); }
+});
 
 app.use((req, res) => res.status(404).json({ success: false, message: "API route not found" }));
 app.use((error, req, res, next) => {
@@ -35,7 +46,12 @@ app.use((error, req, res, next) => {
 
 const PORT = Number(process.env.PORT) || 5000;
 async function start() {
-  await db.query("SELECT 1");
-  app.listen(PORT, () => console.log(`Brightloop API listening on port ${PORT}`));
+  try {
+    await db.query("SELECT 1");
+    app.listen(PORT, () => console.log(`Server starts , API listening on port ${PORT}`));
+  } catch (error) {
+    console.error(`Database connection failed. API not started: ${error.message}`);
+    process.exitCode = 1;
+  }
 }
-start().catch(error => { console.error("Unable to start API:", error.message); process.exit(1); });
+start();
