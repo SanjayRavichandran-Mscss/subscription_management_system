@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Boxes, ChevronLeft, CreditCard, DollarSign, LayoutDashboard, Menu, Package, RefreshCcw, Receipt, Search, Settings, ShoppingCart, Tags, Users, X } from "lucide-react";
+import { Bell, Boxes, CreditCard, DollarSign, LayoutDashboard, Menu, Package, RefreshCcw, Receipt, Search, Settings, ShoppingCart, Tags, Users, X } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -13,7 +13,7 @@ const navigation = [
 ];
 
 export default function MainLayout() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -40,16 +40,24 @@ export default function MainLayout() {
       </aside>
       <div className={`transition-all ${collapsed ? "lg:pl-[76px]" : "lg:pl-[260px]"}`}>
         <header className="sticky top-0 z-30 flex h-16 items-center border-b border-slate-200 bg-white px-4 lg:px-6">
-          <button className="icon-button desktop-toggle" onClick={() => setCollapsed(value => !value)}>{collapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}</button>
-          <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)}><Menu size={20} /></button>
+          <button
+            className="icon-button mr-1"
+            onClick={() => {
+              if (window.matchMedia("(max-width: 1023px)").matches) setMobileOpen(value => !value);
+              else setCollapsed(value => !value);
+            }}
+            aria-label="Toggle navigation"
+          >
+            <Menu size={20} />
+          </button>
           <div className="breadcrumbs">Brightloop ERP <span>/</span> <strong>{section}</strong></div>
           <div className="ml-auto flex items-center gap-2">
             <button className="hidden rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:block" aria-label="Search"><Search size={19} /></button>
             <button className="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Notifications"><Bell size={19} /></button>
-            <button className="ml-1 flex items-center gap-2 rounded-lg border border-slate-200 p-1.5 pr-3" onClick={logout} title="Sign out">
+            <div className="ml-1 flex cursor-default items-center gap-2 rounded-lg border border-slate-200 p-1.5 pr-3" aria-label="Current profile">
               <span className="grid h-8 w-8 place-items-center rounded-md bg-brand-50 font-bold text-brand-700">{user.name?.charAt(0)}</span>
               <span className="hidden text-left md:block"><strong className="block text-xs">{user.name}</strong><small className="text-[10px] text-slate-500">{user.role}</small></span>
-            </button>
+            </div>
           </div>
         </header>
         <main className="mx-auto max-w-[1600px] p-4 lg:p-6"><Outlet /></main>
