@@ -34,8 +34,12 @@ export default function ResourcePage({ resource, title }) {
     event.preventEvent?.();
     event.preventDefault();
     try {
-      if (editing?.id) await api.put(`/${resource}/${editing.id}`, form);
-      else await api.post(`/${resource}`, form);
+      const payload = Object.fromEntries(Object.entries(form).map(([key, value]) => [
+        key,
+        typeof value === "string" && /^\d{4}-\d{2}-\d{2}T/.test(value) ? value.slice(0, 10) : value
+      ]));
+      if (editing?.id) await api.put(`/${resource}/${editing.id}`, payload);
+      else await api.post(`/${resource}`, payload);
       toast.success(editing?.id ? "Record updated" : "Record created");
       setEditing(null);
       setForm({});

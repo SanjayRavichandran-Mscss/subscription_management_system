@@ -2,6 +2,36 @@ const db = require("../config/db");
 
 const allowedTables = new Set(["customers","users","roles","categories","products","product_variants","subscription_plans","quotations","subscriptions","billing_runs","invoices","taxes","discounts","payments","refunds","notifications","settings"]);
 
+const referenceTables = {
+  user_id: "users", customer_id: "customers", role_id: "roles", parent_id: null,
+  category_id: "categories", product_id: "products", plan_id: "subscription_plans",
+  quotation_id: "quotations", subscription_id: "subscriptions", billing_run_id: "billing_runs",
+  invoice_id: "invoices", payment_id: "payments", created_by: "users"
+};
+
+function cleanValue(field, value, column) {
+  if (value === "" || value === null || value === undefined) return "";
+  if (/^(date|datetime|timestamp)/i.test(column.Type) && typeof value === "string") {
+    const isoMatch = value.match(/^(\d{4}-\d{2}-\d{2})(?:T|$)/);
+    if (isoMatch) return isoMatch[1];
+  }
+  return value;
+}
+
+async function cleanReferences(values) {
+  for (const [field, value] of Object.entries(values)) {
+    if (!referenceTables[field] || value === "") continue;
+    if (referenceTables[field] === null) continue;
+    const numericId = Number(value);
+    if (!Number.isInteger(numericId) || numericId < 1) {
+      delete values[field];
+      continue;
+    }
+    const [rows] = await db.execute(`SELECT id FROM \`${referenceTables[field]}\` WHERE id=? LIMIT 1`, [numericId]);
+    if (!rows.length) delete values[field];
+  }
+}
+
 exports.list = table => async (req, res, next) => {
   if (!allowedTables.has(table)) return next(Object.assign(new Error("Resource unavailable"), { status: 404 }));
   try {
@@ -40,7 +70,12 @@ exports.create = table => async (req, res, next) => {
     const [columns] = await db.execute(`SHOW COLUMNS FROM \`${table}\``);
     const writable = columns.map(c => c.Field).filter(c => !["id","created_at","updated_at"].includes(c));
     const values = {};
-    writable.forEach(c => { if (req.body[c] !== undefined && req.body[c] !== "") values[c] = req.body[c]; });
+    writable.forEach(field => {
+      const column = columns.find(item => item.Field === field);
+      const value = cleanValue(field, req.body[field], column || { Type: "" });
+      if (req.body[field] !== undefined && value !== "") values[field] = value;
+    });
+    await cleanReferences(values);
     const keys = Object.keys(values);
     if (!keys.length) return res.status(400).json({ success: false, message: "No valid fields supplied." });
     const [result] = await db.execute(`INSERT INTO \`${table}\` (${keys.map(k => `\`${k}\``).join(",")}) VALUES (${keys.map(() => "?").join(",")})`, keys.map(k => values[k]));
@@ -55,7 +90,15 @@ exports.update = table => async (req, res, next) => {
     const writable = columns.map(c => c.Field).filter(c => !["id","created_at","updated_at"].includes(c));
     const keys = writable.filter(k => req.body[k] !== undefined);
     if (!keys.length) return res.status(400).json({ success: false, message: "No valid fields supplied." });
-    await db.execute(`UPDATE \`${table}\` SET ${keys.map(k => `\`${k}\`=?`).join(",")}, updated_at=UTC_TIMESTAMP() WHERE id=?`, [...keys.map(k => req.body[k]), req.params.id]);
+    const values = {};
+    keys.forEach(field => {
+      const column = columns.find(item => item.Field === field);
+      values[field] = cleanValue(field, req.body[field], column || { Type: "" });
+    });
+    await cleanReferences(values);
+    const validKeys = Object.keys(values);
+    if (!validKeys.length) return res.status(400).json({ success: false, message: "The supplied related record does not exist." });
+    await db.execute(`UPDATE \`${table}\` SET ${validKeys.map(k => `\`${k}\`=?`).join(",")}, updated_at=UTC_TIMESTAMP() WHERE id=?`, [...validKeys.map(k => values[k] || null), req.params.id]);
     res.json({ success: true });
   } catch (error) { next(error); }
 };

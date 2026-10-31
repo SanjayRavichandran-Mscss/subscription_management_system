@@ -9,8 +9,16 @@ module.exports = (error, req, res, next) => {
     return res.status(409).json({ success: false, message: "A record with this value already exists." });
   }
 
+  if (error?.code === "ER_ROW_IS_REFERENCED_2" || error?.code === "ER_ROW_IS_REFERENCED") {
+    return res.status(409).json({ success: false, message: "This record cannot be deleted because it is used by another screen." });
+  }
+
   if (error?.code === "ER_NO_REFERENCED_ROW_2") {
-    return res.status(409).json({ success: false, message: "This record is linked to another record and cannot be removed." });
+    return res.status(409).json({ success: false, message: "The selected related record is no longer available. Refresh and try again." });
+  }
+
+  if (error?.code === "ER_TRUNCATED_WRONG_VALUE" || error?.code === "ER_WRONG_VALUE") {
+    return res.status(422).json({ success: false, message: "One of the entered date or numeric values is invalid." });
   }
 
   const status = Number.isInteger(error?.status) ? error.status : 500;
